@@ -1,0 +1,83 @@
+def customImage
+def resource
+def storageaccountname
+pipeline 
+{
+	agent any
+	environment
+	{
+		azurecred = credentials('azurecred')
+		dockerHubCred = credentials('dockerHubCred')
+	}
+	stages
+	{
+		stage('get git repo')
+		{
+			steps
+			{
+		    	checkout scm
+		    }
+    	}
+    	stage('creating image')
+    	{
+	    	steps
+	    	{
+	    		script{
+					customImage = docker.build("vrp97/mywebapp:${env.BUILD_ID}","../Dockerfile/")
+				}
+			}
+	   	}
+	   	stage('pushing image to docker hub')
+	   	{
+		   	steps
+		   	{
+		   		script
+		   		{
+					docker.withRegistry('', 'dockerHubCred') 
+					{
+						customImage.push()
+					}
+				}
+			}
+		}
+		
+		stage('azure logging in')
+		{
+			steps
+			{
+				sh "az login -u $azurecred_usr -p $azurecred_psw"
+			}
+		}
+		stage('creating deploymemt')
+		{
+			steps
+			{
+				script 
+				{
+					resource = sh(script:"az group list --output table | awk 'NR==3 {print \$1}'", returnStdout: true).trim()
+				}
+				sh "az deployment group create --resource-group ${resource} --template-file ../Azure/blobContainerInAzureStorageAccTemplate.json"
+			}
+		}
+		stage('setting static website')
+		{
+			steps
+			{
+				script 
+				{
+					storageaccountname = sh(script:"az storage account list --output table | awk 'NR==3 {print \$6}'", returnStdout: true).trim()
+				}
+				sh "az storage blob service-properties update --account-name ${storageaccountname} --static-website --404-document 404.html --index-document index.html"
+			}
+		}
+		stage('uploading files')
+		{
+			steps
+			{
+				sh "az storage blob upload-batch -s ../WebWS/WebContent/jsp/ -d '\$web' --account-name ${storageaccountname}"
+				sh "az storage account show -n ${storageaccountname} -g ${resource} --query 'primaryEndpoints.web' --output tsv"
+			}
+		}
+	}	
+}
+
