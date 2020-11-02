@@ -1,4 +1,4 @@
-# Jenkins chart on Minikubw
+# Jenkins chart on Minikube
 
 
 Here you will find the instruction for getting public helm chart to Deploy jenkins chart on Minikube.
