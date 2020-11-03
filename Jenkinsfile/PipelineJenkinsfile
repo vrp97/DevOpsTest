@@ -23,7 +23,7 @@ pipeline
 	    	steps
 	    	{
 	    		script{
-					customImage = docker.build("vrp97/mywebapp:${env.BUILD_ID}","../Dockerfile/")
+					customImage = docker.build("vrp97/mywebapp:${env.BUILD_ID}","Dockerfile/")
 				}
 			}
 	   	}
@@ -56,7 +56,7 @@ pipeline
 				{
 					resource = sh(script:"az group list --output table | awk 'NR==3 {print \$1}'", returnStdout: true).trim()
 				}
-				sh "az deployment group create --resource-group ${resource} --template-file ../Azure/blobContainerInAzureStorageAccTemplate.json"
+				sh "az deployment group create --resource-group ${resource} --template-file Azure/blobContainerInAzureStorageAccTemplate.json"
 			}
 		}
 		stage('setting static website')
@@ -74,7 +74,7 @@ pipeline
 		{
 			steps
 			{
-				sh "az storage blob upload-batch -s ../WebWS/WebContent/jsp/ -d '\$web' --account-name ${storageaccountname}"
+				sh "az storage blob upload-batch -s WebWS/WebContent/jsp/ -d '\$web' --account-name ${storageaccountname}"
 				sh "az storage account show -n ${storageaccountname} -g ${resource} --query 'primaryEndpoints.web' --output tsv"
 			}
 		}
